@@ -1,34 +1,42 @@
-import React from 'react';
-import Link  from 'next/link';
-import { IoMdHome } from 'react-icons/io'; // Importing a home icon from react-icons
-import styled from 'styled-components';
+import React from "react";
+import Link from "next/link";
+import { IoMdHome } from "react-icons/io"; // Importing home icon
+import styled from "styled-components";
 
 const Home = () => {
   return (
-    <Square href="/dashboard">
-      <IoMdHome />
-    </Square>
+    <Link href="/dashboard" passHref>
+      <Square aria-label="Go to Dashboard">
+        <IoMdHome />
+      </Square>
+    </Link>
   );
 };
 
-const Square = styled(Link)`
+const Square = styled.div`
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 50px; // Adjust the size as needed
-  height: 50px; // Adjust the size as needed
-  background-color: #007bff; // Adjust the background color as needed
+  width: 60px;
+  height: 60px;
+  background-color: #007bff;
   color: white;
-  border-radius: 4px; // Adjust for square or rounded corners
+  border-radius: 10px;
   text-decoration: none;
-  
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  transition: background 0.3s, transform 0.2s;
+
   svg {
-    width: 24px; // Adjust icon size as needed
-    height: 24px; // Adjust icon size as needed
+    width: 28px;
+    height: 28px;
   }
 
   &:hover {
-    background-color: #0056b3; // Adjust hover effect as needed
+    background-color: #0056b3;
+    transform: scale(1.1);
   }
 `;
 

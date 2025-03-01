@@ -41,3 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 .env
+
+# Configurations of Teller API
+/teller
+/pages/api/certificates

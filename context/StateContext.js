@@ -7,17 +7,19 @@ export const StateContext = ({ children }) => {
 
   // Variables to Carry Across Multiple Pages
   const [user, setUser] = useState(null)
-
+  const [accessToken, setAccessToken] = useState(null);
   const router = useRouter()
   const { asPath } = useRouter()
-
+  
 
 
 return(
     <Context.Provider
     value={{
         user,
-        setUser
+        setUser,
+        accessToken,
+        setAccessToken,
     }}
     >
       {children}

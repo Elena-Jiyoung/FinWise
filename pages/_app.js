@@ -1,6 +1,7 @@
-import ChatbotPopup from "@/components/Chatbot/ChatbotPopup";
+import ChatbotButton from '@/components/Chatbot/ChatbotButton';
 import { createGlobalStyle } from 'styled-components'
-
+import { StateContext } from "@/context/StateContext"
+import "bootstrap/dist/css/bootstrap.min.css"; // Import Bootstrap globally
 export const GlobalStyle = createGlobalStyle`
 
 *{
@@ -15,9 +16,11 @@ export default function App({ Component, pageProps }) {
   return (
   
   <>
-    <Component {...pageProps} /> 
+    <StateContext>
+      <Component {...pageProps} /> 
+    </StateContext>
     <GlobalStyle />
-    <ChatbotPopup />
+    <ChatbotButton />
   </>
 
   );
