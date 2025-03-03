@@ -2,10 +2,11 @@ import { db, auth } from "./Firebase.js";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, fetchSignInMethodsForEmail, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { doc } from "firebase/firestore";
 import { setDoc } from "firebase/firestore";
+
 // const email = "user@example.com" // User's email address
 // const password = "password123" // User's password
 
-export async function login(email, password, setUser) {
+export async function login(email, password, setUser, setUserId) {
     try {
       // Check if the email is registered before attempting login
       const existingMethods = await fetchSignInMethodsForEmail(auth, email);
@@ -17,6 +18,7 @@ export async function login(email, password, setUser) {
     // Proceed with login
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     setUser(userCredential.user);
+    setUserId(userCredential.user.uid);
     console.log(`User ${userCredential.user.email} signed in successfully!`);
     return { success: true };
   } catch (err) {

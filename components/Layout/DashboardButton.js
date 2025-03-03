@@ -3,7 +3,7 @@ import Link from "next/link";
 import { IoMdHome } from "react-icons/io"; // Importing home icon
 import styled from "styled-components";
 
-const Home = () => {
+const DashboardButton = () => {
   return (
     <Link href="/dashboard" passHref>
       <Square aria-label="Go to Dashboard">
@@ -40,4 +40,4 @@ const Square = styled.div`
   }
 `;
 
-export default Home;
+export default DashboardButton;

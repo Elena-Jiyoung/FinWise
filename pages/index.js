@@ -2,7 +2,7 @@
 // It introduces users to FinWise and encourages them to sign up.
 
 import Link from "next/link";
-import Navbar from "@/components/Dashboard/Navbar";
+import Navbar from "@/components/Layout/Navbar";
 import Footer from "@/components/LandingPage/Footer";
 import Hero from "@/components/LandingPage/Hero";
 

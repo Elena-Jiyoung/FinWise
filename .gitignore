@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+backend/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -45,3 +46,6 @@ next-env.d.ts
 # Configurations of Teller API
 /teller
 /pages/api/certificates
+
+# Private key from firebase admin SDK
+/finwise-7a208-firebase-adminsdk-fbsvc-7be90a76ca.json

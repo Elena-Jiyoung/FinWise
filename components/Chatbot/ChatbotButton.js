@@ -30,9 +30,9 @@ const FloatingButton = styled.button`
 
 const ChatbotContainer = styled.div`
   position: fixed;
-  bottom: 80px;
+  bottom: 40px;
   right: 20px;
-  width: 400px;
+  width: 500px;
   z-index: 1000;
 `;
 

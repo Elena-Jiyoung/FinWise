@@ -3,6 +3,9 @@
 
 // 1. When the user clicks "Connect Your Bank", Teller Connect opens.
 //2. After the user links their bank, Teller returns an access_token.
+
+//https://github.com/tellerhq/teller-connect-react/tree/master
+
 import { useState, useEffect } from "react";
 import { useTellerConnect } from "teller-connect-react";
 import React from "react";
@@ -90,7 +93,8 @@ const ConnectBank = () => {
       });
       if (response.success) {
         console.log("Access token stored, navigating to Dashboard...");
-        router.push("/dashboard");
+        // Redirect to loading page while fetching transactions
+      router.push("/loading");
       }
     } catch (error) {
       console.error("Error storing access token:", error);

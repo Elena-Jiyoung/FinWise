@@ -4,10 +4,10 @@ import { useRouter } from 'next/router'
 import { useStateContext } from '@/context/StateContext'
 import {login, loginWithGoogle, isEmailInUse} from '@/backend/Auth'
 import Link from 'next/link'
-import Navbar from '@/components/Dashboard/Navbar'
+import Navbar from '@/components/Layout/Navbar'
 const Login = () => {
 
-  const { user, setUser } = useStateContext()
+  const { user, setUser , setUserId} = useStateContext()
   const [ email, setEmail ] = useState('')
   const [ password, setPassword ] = useState('')
 
@@ -16,7 +16,7 @@ const Login = () => {
 
   async function handleLogin(){
     try{
-        const response = await login(email, password, setUser);
+        const response = await login(email, password, setUser, setUserId);
         if (response.error === "auth/user-not-found") {
           alert("No account found with this email. Please sign up.");
           return;
