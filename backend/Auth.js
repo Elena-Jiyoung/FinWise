@@ -87,21 +87,21 @@ export async function register(email, password, setUser, setUserId) {
 }
 
 
-export async function loginWithGoogle(){
-
-
-    const provider = new GoogleAuthProvider();
-    try{
-        const result = await signInWithPopup(auth, provider);
-        const credential = GoogleAuthProvider.credentialFromResult(result);
-        const token = credential.accessToken;
-        const user = result.user;
-        console.log(`User ${user.email} signed in with Google successfully!`);
-    } catch (err){
-        console.error(`Error ${err.code}: ${err.message}`);
-        throw err;
-    }
-
+export async function loginWithGoogle() {
+  const provider = new GoogleAuthProvider();
+  try {
+      const result = await signInWithPopup(auth, provider);
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      const token = credential?.accessToken;
+      const user = result.user;
+      
+      console.log(`✅ User ${user.email} signed in with Google successfully!`);
+      
+      return { user, token }; // Return user data
+  } catch (err) {
+      console.error(`❌ Error ${err.code}: ${err.message}`);
+      return { error: err.code, message: err.message }; // ✅ Return structured error
+  }
 }
 
 export async function logOut(setUser){

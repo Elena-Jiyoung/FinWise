@@ -53,32 +53,39 @@ const Login = () => {
         console.log('Error Logging In', err)
     }
   }
+  async function handleGoogleLogin() {
+    try {
+        const response = await loginWithGoogle();
 
-  async function handleGoogleLogin(){
-    try{
-      const response = await loginWithGoogle(setUser, setUserId)
-      if (response.error) {
-        alert(`Error logging in: ${response.error}`);
-        return;
-      }
-      else {
-      const result = await checkUserBankStatus(user);
+        if (response.error) {
+            alert(`❌ Error logging in: ${response.message}`);
+            return;
+        }
+
+        // Store user data in state
+        setUser(response.user);
+        setUserId(response.user.uid);
+        print(userId)
+        // Check user's bank connection
+        const result = await checkUserBankStatus(response.user);
         console.log("User Bank Status:", result);
 
         if (result.success) {
-          console.log("User has connected their bank:", result.tellerUserId);
-          router.push('/loading')
+            console.log("User has connected their bank:", result.tellerUserId);
+            router.push("/loading");
         } else {
-          console.error("Bank not connected or error:", result.error);
-          router.push('/connect-bank');
-
+            console.warn("⚠ No bank connected.");
+            router.push("/connect-bank");
         }
-        alert("Logged in successfully!");
-      }
-    }catch(err){
-        console.log('Error Logging In', err)
+
+        alert("✅ Logged in successfully!");
+    } catch (err) {
+        console.error("❌ Error Logging In:", err);
+        alert("Google Sign-In failed.");
     }
-  }
+}
+
+  
 
   return (
     <>
