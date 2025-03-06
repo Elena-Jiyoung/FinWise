@@ -24,6 +24,7 @@ const Container = styled.div`
 `;
 
 const Title = styled.h2`
+  margin-top: 10px;
   font-size: 2.5rem;
   margin-bottom: 20px;
 `;
@@ -131,7 +132,7 @@ const ConnectBank = () => {
 
     <Container>
       <script src="https://cdn.teller.io/connect/connect.js"></script>
-      <h3>When you connect, Teller Connect could not be initialized. If so, refresh your page and try clicking again.</h3>
+      <h3>Please refresh the page or log in again, then try connecting your bank.</h3>
       <Title>Would you like to connect your bank?</Title>
       <Subtitle>
         Connect your bank account securely to track expenses, set savings goals, and optimize your financial health.
