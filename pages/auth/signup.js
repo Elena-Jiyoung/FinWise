@@ -84,7 +84,7 @@ async function handleSignup() {
         {isValidPassword === false && errorMessage != 'Email is already in use' && <p style={{ fontSize: '14px', color: 'red' }}>Error signing up due to this: {errorMessage}. Please try again.</p>}
         {isValidPassword === false && errorMessage === 'Email is already in use' && <p style={{ fontSize: '14px', color: 'red' }}>Email is already in use. Please login instead.</p>}
         <UserAgreementText>Already have an account? <Link href="/auth/login">Login</Link></UserAgreementText>
-        <UserAgreementText>By signing in, you automatically agree to our <UserAgreementSpan href='/legal/terms-of-use' rel="noopener noreferrer" target="_blank"> Terms of Use</UserAgreementSpan> and <UserAgreementSpan href='/legal/privacy-policy' rel="noopener noreferrer" target="_blank">Privacy Policy.</UserAgreementSpan></UserAgreementText>
+        <UserAgreementText>By signing in, you automatically agree to our <UserAgreementSpan href='#' rel="noopener noreferrer" target="_blank"> Terms of Use</UserAgreementSpan> and <UserAgreementSpan href='#' rel="noopener noreferrer" target="_blank">Privacy Policy.</UserAgreementSpan></UserAgreementText>
         <MainButton onClick={handleSignup}>Signup</MainButton>
       </Section>
     </>

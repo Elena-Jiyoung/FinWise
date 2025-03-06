@@ -95,7 +95,7 @@ const Login = () => {
         <Input type="email" placeholder="Enter your Email." value={email} onChange={(e) => setEmail(e.target.value)}/>
         <Input type="password" placeholder="Enter your password." value={password} onChange={(e) => setPassword(e.target.value)}/>
 
-        <UserAgreementText>By signing in, you automatically agree to our <UserAgreementSpan href='/legal/terms-of-use' rel="noopener noreferrer" target="_blank"> Terms of Use</UserAgreementSpan> and <UserAgreementSpan href='/legal/privacy-policy' rel="noopener noreferrer" target="_blank">Privacy Policy.</UserAgreementSpan></UserAgreementText>
+        <UserAgreementText>By signing in, you automatically agree to our <UserAgreementSpan href='#' rel="noopener noreferrer" target="_blank"> Terms of Use</UserAgreementSpan> and <UserAgreementSpan href='#' rel="noopener noreferrer" target="_blank">Privacy Policy.</UserAgreementSpan></UserAgreementText>
 
         <MainButton onClick={handleLogin}>Login</MainButton>
         <GoogleButton onClick={handleGoogleLogin}>Sign in with Google</GoogleButton>
