@@ -24,37 +24,38 @@ backend/node_modules
 # misc
 .DS_Store
 *.pem
+desktop.ini  # Windows desktop config
+
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env*
-.env*.local
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
+# Ignore Environment Configuration
 .env
-
-# Configurations of Teller API
-/teller
-/pages/api/certificates
-
-# Private key from firebase admin SDK
-/finwise-7a208-firebase-adminsdk-fbsvc-7be90a76ca.json
-
+.env.*
 .env.local
 .env.production
 .env.development
+
+# Ignore Vercel Build Files
+.vercel
+
+# TypeScript Build Info
+*.tsbuildinfo
+next-env.d.ts
+
+# Ignore Sensitive Certificates & Keys
 *.pem
 *.key
 *.crt
 *.json
 *.base64
+
+# Teller API & Firebase Admin SDK Configuration
+/teller/
+!/teller/README.md # (Optional: Keep README if needed)
+/pages/api/certificates/
+finwise-7a208-firebase-adminsdk-fbsvc-7be90a76ca.json
+
