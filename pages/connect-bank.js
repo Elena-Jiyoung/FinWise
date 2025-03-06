@@ -97,7 +97,7 @@ const ConnectBank = () => {
         };
         
         console.log("Request Payload:", requestBody); // Log the request payload
-        const response = await fetch("http://localhost:5000/store-teller-user", {
+        const response = await fetch("/api/store-teller-user", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

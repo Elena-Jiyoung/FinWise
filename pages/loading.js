@@ -30,7 +30,7 @@ const LoadingPage = () => {
                 }
                 else{
                 console.log("Bank linked! Fetching linked accounts...");
-                const accountsRes = await fetch(`http://localhost:5000/api/accounts/${userId}`);
+                const accountsRes = await fetch(`/api/accounts?firebaseUserId=${userId}`);
                 if (!accountsRes.ok) throw new Error("Failed to fetch accounts.");
                 const accountsData = await accountsRes.json();
                 console.log("✅ Accounts fetched:", accountsData);
@@ -44,17 +44,17 @@ const LoadingPage = () => {
                     console.log(`🔹 Fetching data for account: ${accountId}`);
 
                     // Fetch balances
-                    const balanceRes = await fetch(`http://localhost:5000/api/accounts/${accountId}/${userId}/balances`);
+                    const balanceRes = await fetch(`/api/balances?accountId=${accountId}&firebaseUserId=${userId}`);
                     if (!balanceRes.ok) throw new Error(`Failed to fetch balances for ${accountId}.`);
                     balances[accountId] = await balanceRes.json();
 
                     // Fetch transactions
-                    const transactionsRes = await fetch(`http://localhost:5000/api/accounts/${accountId}/${userId}/transactions`);
+                    const transactionsRes = await fetch(`/api/transactions?accountId=${accountId}&firebaseUserId=${userId}`);
                     if (!transactionsRes.ok) throw new Error(`Failed to fetch transactions for ${accountId}.`);
                     transactions[accountId] = await transactionsRes.json();
 
                     // Fetch account details
-                    const detailsRes = await fetch(`http://localhost:5000/api/accounts/${accountId}/${userId}/details`);
+                    const detailsRes = await fetch(`/api/account-details?accountId=${accountId}&firebaseUserId=${userId}`);
                     if (!detailsRes.ok) throw new Error(`Failed to fetch account details for ${accountId}.`);
                     accountDetails[accountId] = await detailsRes.json();
                 }
