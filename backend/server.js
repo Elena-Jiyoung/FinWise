@@ -1,5 +1,5 @@
 //I used this file as my server initially, and migrated to pages/api/ API routes for Next.js.
-
+// Hence, this file is no longer in use.
 
 // require("dotenv").config();
 // const express = require("express");
