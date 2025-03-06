@@ -1,3 +1,5 @@
+//outdated file because I migrated to Sidebar component for navigation in Dashboard page.
+
 import styled from "styled-components";
 
 const QuickActions = () => {

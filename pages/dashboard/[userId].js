@@ -1,3 +1,5 @@
+// Dashboard Page: Central hub where users can see their spending trends and financial summary
+// and navigate to other features including setting goals, tracking goals, and add transactions manually.
 import { useState, useEffect } from "react";
 import { useStateContext } from "../../context/StateContext";
 import { useRouter } from "next/router";
