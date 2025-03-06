@@ -30,9 +30,18 @@ const LoadingPage = () => {
                 }
                 else{
                 console.log("Bank linked! Fetching linked accounts...");
-                const accountsRes = await fetch(`/api/accounts?firebaseUserId=${userId}`);
-                if (!accountsRes.ok) throw new Error("Failed to fetch accounts.");
-                const accountsData = await accountsRes.json();
+                const accountsRes = await fetch(`/api/accounts?firebaseUserId=${userId}`,{
+                  method: "GET",
+                  headers: { "Content-Type": "application/json" }
+                });
+                const textResponse = await accountsRes.text(); // Read response as text
+
+                if (!accountsRes.ok) {
+                  console.error(`❌ Error fetching accounts: ${textResponse}`);
+                  throw new Error(textResponse); 
+                }
+                const accountsData = JSON.parse(textResponse);
+                
                 console.log("✅ Accounts fetched:", accountsData);
 
                 let accountDetails = {};

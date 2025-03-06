@@ -1,27 +1,31 @@
-import { fetchTellerAPI } from "./teller";
-import admin from "firebase-admin";
-
-async function getAccessToken(userId) {
-  const userDoc = await admin.firestore().collection("users").doc(userId).get();
-  return userDoc.exists ? userDoc.data().accessToken : null;
-}
+import TellerClient from "@/lib/tellerClient";
+import { db } from "@/lib/firebaseAdmin";
 
 export default async function handler(req, res) {
-  if (req.method === "GET") {
-    const { accountId, firebaseUserId } = req.query;
-    const accessToken = await getAccessToken(firebaseUserId);
+  if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
 
-    if (!accessToken || !accountId) {
-      return res.status(400).json({ error: "Missing access token or account ID." });
-    }
+  const { accountId, firebaseUserId } = req.query;
+  if (!accountId || !firebaseUserId) return res.status(400).json({ error: "Missing parameters" });
 
-    try {
-      const balances = await fetchTellerAPI(`/accounts/${accountId}/balances`, accessToken);
-      res.json(balances);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch account balances." });
-    }
-  } else {
-    res.status(405).json({ error: "Method Not Allowed" });
+  try {
+    const userDoc = await db.collection("users").doc(firebaseUserId).get();
+    if (!userDoc.exists) return res.status(404).json({ error: "User not found" });
+
+    const userData = userDoc.data();
+    const accessToken = userData.accessToken;
+    if (!accessToken) return res.status(400).json({ error: "No access token found" });
+
+    const cert = {
+      cert: Buffer.from(process.env.TELLER_CERTIFICATE_BASE64, "base64").toString("utf-8"),
+      key: Buffer.from(process.env.TELLER_PRIVATE_KEY_BASE64, "base64").toString("utf-8"),
+    };
+
+    const tellerClient = new TellerClient(cert, accessToken);
+    const balances = await tellerClient.getAccountBalances(accountId);
+
+    res.status(200).json(balances);
+  } catch (error) {
+    console.error("❌ Error fetching balances:", error.message);
+    res.status(500).json({ error: error.message });
   }
 }

@@ -19,11 +19,19 @@ const Login = () => {
   async function handleLogin(){
     try{
         const response = await login(email, password, setUser, setUserId);
+        
         if (response.error === "auth/user-not-found") {
-          alert("No account found with this email. Please sign up.");
-          return;
+          const shouldSignUp = confirm("No account found with this email. Would you like to sign up?");
+            if (shouldSignUp) {
+                return router.push("/auth/signup"); // ✅ Redirect to sign-up
+            } else {
+                return;
+            }
         } else if (response.error === "auth/wrong-password") {
           alert("Incorrect password. Please try again.");
+          return;
+        } else if (response.error === "auth/invalid-credential") {
+          alert("Invalid credentials. Please check your email and password.");
           return;
         } else if (response.error) {
           alert(`Error logging in: ${response.error}`);
