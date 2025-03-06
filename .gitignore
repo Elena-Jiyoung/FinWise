@@ -49,3 +49,12 @@ next-env.d.ts
 
 # Private key from firebase admin SDK
 /finwise-7a208-firebase-adminsdk-fbsvc-7be90a76ca.json
+
+.env.local
+.env.production
+.env.development
+*.pem
+*.key
+*.crt
+*.json
+*.base64

@@ -43,13 +43,29 @@ if (needsCert && (!args.cert || !args["cert-key"])) {
   process.exit(1);
 }
 
-const certConfig = needsCert ? {
-  cert: fs.readFileSync(args.cert),
-  key: fs.readFileSync(args["cert-key"])
-} : null;
+const certConfig = needsCert && process.env.TELLER_CERTIFICATE_BASE64 && process.env.TELLER_PRIVATE_KEY_BASE64
+  ? {
+      cert: Buffer.from(process.env.TELLER_CERTIFICATE_BASE64, "base64").toString("utf-8"),
+      key: Buffer.from(process.env.TELLER_PRIVATE_KEY_BASE64, "base64").toString("utf-8"),
+    }
+  : null;
 
-// ✅ Initialize Firebase
-var serviceAccount = require("C:/Dev/FinWise/finwise-7a208-firebase-adminsdk-fbsvc-7be90a76ca.json");
+  if (needsCert && !certConfig) {
+    console.error("❌ Error: TLS certificate or private key missing from environment variables.");
+    process.exit(1);
+  }
+// ✅ Load Firebase Service Account from Environment Variable
+const firebaseConfigBase64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
+if (!firebaseConfigBase64) {
+  console.error("❌ Firebase service account is missing in environment variables.");
+  process.exit(1);
+}
+
+// ✅ Decode Base64 JSON
+const serviceAccount = JSON.parse(Buffer.from(firebaseConfigBase64, "base64").toString("utf-8"));
+
+// // ✅ Initialize Firebase
+// var serviceAccount = require("C:/Dev/FinWise/finwise-7a208-firebase-adminsdk-fbsvc-7be90a76ca.json");
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
