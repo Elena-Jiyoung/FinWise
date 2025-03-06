@@ -17,6 +17,7 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "firebase": "^10.14.1",
+    "firebase-admin": "^13.2.0",
     "firebaseui": "^6.1.0",
     "next": "15.1.7",
     "openai": "^4.85.4",
