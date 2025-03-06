@@ -1,135 +1,180 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { useStateContext } from "../context/StateContext";
-import { db } from "../firebase";
-import { doc, getDoc, setDoc } from "firebase/firestore";
-import Link from "next/link"; // ✅ For navigation
-
+import { db } from "@/backend/Firebase";
+import { doc, getDoc, setDoc, collection, getDocs } from "firebase/firestore";
+import Router from "next/router";
+import Sidebar from "@/components/Layout/Sidebar";
 const GoalTracker = () => {
   const { userId } = useStateContext();
-  const [savedAmount, setSavedAmount] = useState(0);
-  const [targetAmount, setTargetAmount] = useState(5000);
-  const [inputAmount, setInputAmount] = useState("");
+  const [goals, setGoals] = useState([]);
+  const [savings, setSavings] = useState({});
+  const [inputAmounts, setInputAmounts] = useState({});
 
+  // Fetch all goals from Firestore
   useEffect(() => {
     if (!userId) return;
 
-    const fetchSavings = async () => {
-      const savingsRef = doc(db, "users", userId, "savingsProgress");
-      const snapshot = await getDoc(savingsRef);
-      if (snapshot.exists()) {
-        const data = snapshot.data();
-        setSavedAmount(data.savedAmount || 0);
-        setTargetAmount(data.targetAmount || 5000);
+    const fetchGoals = async () => {
+      try {
+        const goalsRef = collection(db, "users", userId, "goals");
+        const snapshot = await getDocs(goalsRef);
+        const userGoals = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        setGoals(userGoals);
+
+        // Fetch savings data per goal
+        const savingsData = {};
+        for (const goal of userGoals) {
+          const goalRef = doc(db, "users", userId, "goals", goal.id);
+          const goalSnapshot = await getDoc(goalRef);
+          if (goalSnapshot.exists()) {
+            savingsData[goal.id] = goalSnapshot.data().savedAmount || 0;
+          } else {
+            savingsData[goal.id] = 0;
+          }
+        }
+        setSavings(savingsData);
+      } catch (error) {
+        console.error("❌ Error fetching goals:", error);
       }
     };
 
-    fetchSavings();
+    fetchGoals();
   }, [userId]);
 
-  const handleAddFunds = async () => {
-    const amount = parseFloat(inputAmount);
+  // Handle savings input changes
+  const handleInputChange = (goalId, value) => {
+    setInputAmounts((prev) => ({ ...prev, [goalId]: value }));
+  };
+
+  // Handle adding savings to a specific goal
+  const handleAddFunds = async (goalId, targetAmount) => {
+    const amount = parseFloat(inputAmounts[goalId]);
     if (!amount || amount <= 0) return alert("Enter a valid amount.");
 
-    const newSavedAmount = savedAmount + amount;
-    setSavedAmount(newSavedAmount);
-    setInputAmount("");
+    const newSavedAmount = (savings[goalId] || 0) + amount;
+    setSavings((prev) => ({ ...prev, [goalId]: newSavedAmount }));
+    setInputAmounts((prev) => ({ ...prev, [goalId]: "" }));
 
     try {
-      const savingsRef = doc(db, "users", userId, "savingsProgress");
-      await setDoc(savingsRef, { savedAmount: newSavedAmount, targetAmount }, { merge: true });
-      console.log("✅ Savings updated!");
+      const goalRef = doc(db, "users", userId, "goals", goalId);
+      await setDoc(goalRef, { savedAmount: newSavedAmount, targetAmount }, { merge: true });
+      console.log("✅ Savings updated for goal:", goalId);
     } catch (error) {
       console.error("❌ Error updating savings:", error);
     }
   };
 
-  const progressPercentage = Math.min((savedAmount / targetAmount) * 100, 100);
-
   return (
+    <>
+    <Sidebar/>
     <Container>
-      <Section>
-        <Title>🔥 Savings Progress</Title>
-        <ProgressContainer>
-          <ProgressBar>
-            <ProgressFill progress={progressPercentage} />
-          </ProgressBar>
-          <ProgressText>{progressPercentage.toFixed(1)}% Complete</ProgressText>
-        </ProgressContainer>
-      </Section>
+      <Title>📈 Track Your Savings</Title>
 
-      <InputContainer>
-        <Input
-          type="number"
-          placeholder="Enter amount you saved today ($)"
-          value={inputAmount}
-          onChange={(e) => setInputAmount(e.target.value)}
-        />
-        <AddFundsButton onClick={handleAddFunds}>➕ Add Savings</AddFundsButton>
-      </InputContainer>
+      {goals.length > 0 ? (
+        goals.map((goal) => {
+          const progressPercentage = Math.min((savings[goal.id] / goal.targetAmount) * 100, 100);
 
-      {/* 🔹 Back to Dashboard Button */}
+          return (
+            <GoalSection key={goal.id}>
+              <h3>{goal.name} - ${goal.targetAmount} Goal</h3>
+              <ProgressContainer>
+                <ProgressBar>
+                  <ProgressFill progress={progressPercentage} />
+                </ProgressBar>
+                <ProgressText>{progressPercentage.toFixed(1)}% Complete</ProgressText>
+              </ProgressContainer>
+              <p>Saved: ${savings[goal.id] || 0} / ${goal.targetAmount}</p>
+
+              <InputContainer>
+                <Input
+                  type="number"
+                  placeholder="Enter amount ($)"
+                  value={inputAmounts[goal.id] || ""}
+                  onChange={(e) => handleInputChange(goal.id, e.target.value)}
+                />
+                <AddFundsButton onClick={() => handleAddFunds(goal.id, goal.targetAmount)}>
+                  ➕ Add Savings
+                </AddFundsButton>
+              </InputContainer>
+            </GoalSection>
+          );
+        })
+      ) : (
+        <p>🚀 No goals set yet. Start by adding one on the <strong>Set Goal</strong> page!</p>
+      )}
+
+      {/* Back to Dashboard Button */}
       <BackButtonContainer>
-        <Link href={`/dashboard/${userId}`} passHref>
-          <BackButton>⬅ Back to Dashboard</BackButton>
-        </Link>
+        <BackButton onClick={() => Router.push(`/dashboard/${userId}`)}>⬅ Back to Dashboard</BackButton>
       </BackButtonContainer>
     </Container>
+    </>
   );
 };
 
 export default GoalTracker;
 
-// ✅ Styled Components
 const Container = styled.div`
-  padding: 50px;
+  padding: 40px;
   text-align: center;
-`;
-
-const Section = styled.div`
-  margin-bottom: 40px;
+  max-width: 800px;
+  margin: 0 auto;
+  position: relative;
+  
+  @media (min-width: 1024px) {
+    margin-left: 300px; /* Adjusted for Sidebar */
+  }
 `;
 
 const Title = styled.h2`
   font-size: 2rem;
-  margin-bottom: 20px;
+  margin-bottom: 30px;
+`;
+
+const GoalSection = styled.div`
+  background: #f9f9f9;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 25px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 `;
 
 const ProgressContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin-top: 10px;
 `;
 
 const ProgressBar = styled.div`
-  width: 80%;
+  width: 100%;
   height: 20px;
   background: #e2e8f0;
   border-radius: 10px;
-  margin-bottom: 10px;
   position: relative;
+  margin-bottom: 10px;
 `;
 
 const ProgressFill = styled.div`
-  width: ${({ progress }) => progress}% ;
+  width: ${({ progress }) => progress}%;
   height: 100%;
   background: #48bb78;
   border-radius: 10px;
-  transition: 0.5s;
+  transition: width 0.5s ease-in-out;
 `;
 
 const ProgressText = styled.p`
-  font-size: 1.2rem;
+  font-size: 1rem;
   font-weight: bold;
   color: #48bb78;
-  margin-top: 10px;
 `;
 
 const InputContainer = styled.div`
   display: flex;
   justify-content: center;
   gap: 10px;
-  margin-top: 20px;
+  margin-top: 10px;
 `;
 
 const Input = styled.input`
@@ -137,7 +182,7 @@ const Input = styled.input`
   border: 1px solid #cbd5e0;
   border-radius: 5px;
   font-size: 1rem;
-  width: 200px;
+  width: 150px;
   text-align: center;
 `;
 
@@ -160,7 +205,7 @@ const BackButtonContainer = styled.div`
   margin-top: 30px;
 `;
 
-const BackButton = styled.a`
+const BackButton = styled.button`
   background: #e53e3e;
   color: white;
   padding: 10px 20px;

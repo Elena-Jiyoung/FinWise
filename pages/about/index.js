@@ -2,9 +2,9 @@ import React from "react";
 import Navbar from "@/components/Layout/Navbar";
 
 import styled from "styled-components";
-
-
-
+import CoinIcon from "@/components/Icons/CoinIcon";
+import ClipboardIcon from "@/components/Icons/ClipboardIcon";
+import PiggyBankIcon from "@/components/Icons/PiggyBankIcon";
 const Container = styled.div`
   display: flex;
   flex-direction: column;
@@ -17,7 +17,8 @@ const Title = styled.h1`
   color: black;
   text-align: center;
   font-size: 2rem;
-  margin-top: 20px;
+  font-weight: bold;
+  margin-top: 10px;
   margin-bottom: 20px;
 `;
 
@@ -38,19 +39,33 @@ const Body = styled.p`
   text-align: center;
   font-size: 1.2rem;
   margin-top: 20px;
-  margin-bottom: 20px;
+  margin-bottom: 40px;
   font-weight: bold;
 `;
 
+const ContactContainer = styled.div`
+  padding-top: 50px;
+  padding-bottom: 30px;
+`
+
+const ContactTitle = styled.div`
+  color: black;
+  text-align: center;
+  font-size: 2rem;
+  font-weight: bold;
+  padding-bottom: 15px;
+  margin-bottom: 20px;
+`
 const FeatureList = styled.ul`
   margin-top: 20px;
-  margin-bottom: 20px;
-  font-size: 1.5rem; // ✅ Increased font size
+  margin-bottom: 10px;
+  font-size: 1.5rem; // Increased font size
   font-weight: bold;
 `;
 
 const HorizontalLine = styled.hr`
   border-top: 1px solid black;
+  width: 100%;
 `
 const About = () => {
   return (
@@ -66,9 +81,9 @@ const About = () => {
     <Container className="container mt-5">
         <Title>Our Features</Title>
         <FeatureList className="list-group list-group-numbered">
-          <li className="list-group-item">📊 Smart Financial Insights</li>
-          <li className="list-group-item">💰 Expense Tracking</li>
-          <li className="list-group-item">🎯 Goal-Based Savings</li>
+          <li className="list-group-item"><ClipboardIcon></ClipboardIcon>Smart Financial Insights</li>
+          <li className="list-group-item"><CoinIcon></CoinIcon>Expense Tracking</li>
+          <li className="list-group-item"><PiggyBankIcon></PiggyBankIcon>Goal-Based Savings</li>
         </FeatureList>
         <div className="text-center mt-4">
           <a href="/dashboard" className="btn btn-primary">
@@ -77,10 +92,10 @@ const About = () => {
         </div>
       </Container>
       <HorizontalLine></HorizontalLine>
-      <Container>
-        <Title>Contact Us</Title>
+      <ContactContainer>
+        <ContactTitle>Contact Us</ContactTitle>
         <Body>Email us at elenajyc3@gmail.com</Body>
-      </Container>
+      </ContactContainer>
       
     </>
   );

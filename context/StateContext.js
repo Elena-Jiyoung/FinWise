@@ -9,6 +9,9 @@ export const StateContext = ({ children }) => {
   const [user, setUser] = useState(null)
   const [userId, setUserId] = useState(null)
   const [accessToken, setAccessToken] = useState(null);
+  const [accountId, setAccountId] = useState(null);
+  const [dashboardData, setDashboardData] = useState(null);
+  const [manualTransactions, setManualTransactions] = useState([])
   const router = useRouter()
   
   useEffect(() => {
@@ -26,6 +29,18 @@ export const StateContext = ({ children }) => {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const savedTransactions = localStorage.getItem("manualTransactions");
+    if (savedTransactions) {
+      setManualTransactions(JSON.parse(savedTransactions));
+    }
+  }, []);
+  
+  useEffect(() => {
+    localStorage.setItem("manualTransactions", JSON.stringify(manualTransactions));
+  }, [manualTransactions]);
+  
+
 
 return(
     <Context.Provider
@@ -36,6 +51,12 @@ return(
         setUserId,
         accessToken,
         setAccessToken,
+        dashboardData, 
+        setDashboardData,
+        manualTransactions,
+        setManualTransactions,
+        accountId,
+        setAccountId
     }}
     >
       {children}

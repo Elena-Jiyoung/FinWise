@@ -5,7 +5,6 @@ const QuickActions = () => {
     <ActionsContainer>
       <ActionButton href="/connect-bank">🏦 Connect Bank</ActionButton>
       <ActionButton href="/manual-entry">➕ Add Transaction</ActionButton>
-      <ActionButton href="#">📤 Export Data</ActionButton>
     </ActionsContainer>
   );
 };

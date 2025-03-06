@@ -1,48 +1,84 @@
-//For users who didn’t connect their bank, this page allows manual input of financial transactions, encouraging to input three months' transactions.
-
-
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import styled from "styled-components";
 import { useStateContext } from "../context/StateContext";
-import { db } from "../firebase";
-import { collection, addDoc, getDocs } from "firebase/firestore";
+import { db } from "@/backend/Firebase";
+import { doc, collection, addDoc, getDocs, deleteDoc } from "firebase/firestore";
 
 const ManualEntry = () => {
-  const { userId } = useStateContext();
+  const { userId, accountId, manualTransactions, setManualTransactions } = useStateContext();
   const [entries, setEntries] = useState([{ date: "", category: "", amount: "" }]);
   const [savedTransactions, setSavedTransactions] = useState([]);
-
+  const router = useRouter();
   useEffect(() => {
     if (!userId) return;
 
     const fetchTransactions = async () => {
-      const txnRef = collection(db, "users", userId, "manualTransactions");
-      const snapshot = await getDocs(txnRef);
-      const userTxns = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      setSavedTransactions(userTxns);
+      try {
+        const txnRef = collection(db, "users", userId, "transactions");
+        const snapshot = await getDocs(txnRef);
+        const userTxns = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+        setManualTransactions(userTxns); // ✅ Update global state
+      } catch (error) {
+        console.error("❌ Error fetching transactions:", error);
+      }
     };
 
     fetchTransactions();
-  }, [userId]);
+  }, [userId]); // ✅ Only fetch when userId changes
 
+  // Handle Input Changes
+  const handleChange = (idx, field, value) => {
+    setEntries((prevEntries) =>
+      prevEntries.map((entry, i) => (i === idx ? { ...entry, [field]: value } : entry))
+    );
+  };
+
+  // Handle Adding a New Entry
+  const addNewEntry = () => {
+    setEntries([...entries, { date: "", category: "", amount: "" }]);
+  };
+
+  // Handle Deleting a Saved Transaction
+  const deleteSavedTransaction = async (txnId) => {
+    if (!userId) return;
+    try {
+      await deleteDoc(doc(db, "users", userId, "transactions", txnId));
+      setManualTransactions((prevTxns) => prevTxns.filter((txn) => txn.id !== txnId));
+    } catch (error) {
+      console.error("❌ Error deleting transaction:", error);
+    }
+  };
+
+  // Handle Submitting Transactions
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!userId) return alert("Please log in.");
 
-    for (const entry of entries) {
-      try {
-        await addDoc(collection(db, "users", userId, "manualTransactions"), {
+    try {
+      const txnRef = collection(db, "users", userId, "transactions");
+      const newTransactions = [];
+
+      for (const entry of entries) {
+        const newTxnRef = await addDoc(txnRef, {
           date: entry.date,
           category: entry.category,
           amount: Number(entry.amount),
+          accountId: accountId || "manual_entry_account",
         });
-      } catch (error) {
-        console.error("❌ Error saving transaction:", error);
-      }
-    }
 
-    setEntries([{ date: "", category: "", amount: "" }]);
-    alert("✅ Transactions saved!");
+        newTransactions.push({ id: newTxnRef.id, ...entry, accountId: accountId || "manual_entry_account" });
+      }
+
+      // ✅ Refresh the state with latest transactions
+      setManualTransactions((prevTxns) => [...prevTxns, ...newTransactions]);
+
+      setEntries([{ date: "", category: "", amount: "" }]); // ✅ Reset input fields
+      alert("Transactions saved!");
+    } catch (error) {
+      console.error("Error saving transaction:", error);
+    }
   };
 
   return (
@@ -50,167 +86,184 @@ const ManualEntry = () => {
       <Title>Manual Financial Entry</Title>
       <Subtitle>Enter transactions for the past 3 months</Subtitle>
 
-      <Form onSubmit={handleSubmit}>
+      <Form>
         {entries.map((entry, index) => (
           <EntryRow key={index}>
             <Input type="date" value={entry.date} onChange={(e) => handleChange(index, "date", e.target.value)} required />
             <Input type="text" placeholder="Category (e.g., Groceries)" value={entry.category} onChange={(e) => handleChange(index, "category", e.target.value)} required />
             <Input type="number" placeholder="Amount ($)" value={entry.amount} onChange={(e) => handleChange(index, "amount", e.target.value)} required />
+            {entries.length > 1 && <DeleteButton onClick={() => deleteEntry(index)}>🗑</DeleteButton>}
+
           </EntryRow>
         ))}
-        <SubmitButton type="submit">Save Entries</SubmitButton>
+        <ButtonsContainer>
+          <AddEntryButton type="button" onClick={addNewEntry}>➕ Add Entry</AddEntryButton>
+          <SubmitButton type="submit" onClick={handleSubmit}>💾 Save Entries</SubmitButton>
+        </ButtonsContainer>
       </Form>
 
-      <h2>📋 Saved Transactions</h2>
-      <ul>
-        {savedTransactions.map((txn) => (
-          <li key={txn.id}>{txn.date} - {txn.category} - ${txn.amount}</li>
-        ))}
-      </ul>
+      <SavedTransactionsContainer>
+        <h2>📋 Saved Transactions</h2>
+        {manualTransactions.length > 0 ? (
+          <TransactionTable>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Category</th>
+                <th>Amount ($)</th>
+                <th>🗑 Delete</th>
+
+              </tr>
+            </thead>
+            <tbody>
+              {manualTransactions.map((txn) => (
+                <tr key={txn.id}>
+                  <td>{txn.date}</td>
+                  <td>{txn.category}</td>
+                  <td>${Number(txn.amount).toFixed(2)}</td>
+                  <td>
+                    <DeleteButton onClick={() => deleteSavedTransaction(txn.id)}>🗑</DeleteButton>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </TransactionTable>
+        ) : (
+          <p>No transactions recorded yet.</p>
+        )}
+
+        <LoadingPageButton onClick={()=>router.push('/loading')}>Continue to load your financial dashboard</LoadingPageButton>
+      </SavedTransactionsContainer>
     </Container>
   );
 };
 
 export default ManualEntry;
 
-// import React, { useState } from "react";
-// import styled from "styled-components";
+const Container = styled.div`
+  max-width: 800px;
+  margin: 50px auto;
+  padding: 20px;
+  background: white;
+  box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  text-align: center;
+`;
 
-// const ManualEntry = () => {
-//   const [entries, setEntries] = useState([
-//     { date: "", category: "", amount: "" },
-//   ]);
+const Title = styled.h1`
+  font-size: 2rem;
+  color: #2d3748;
+`;
 
-//   const handleChange = (index, field, value) => {
-//     const updatedEntries = [...entries];
-//     updatedEntries[index][field] = value;
-//     setEntries(updatedEntries);
-//   };
+const Subtitle = styled.p`
+  font-size: 1.2rem;
+  color: #718096;
+  margin-bottom: 20px;
+`;
 
-//   const addEntry = () => {
-//     setEntries([...entries, { date: "", category: "", amount: "" }]);
-//   };
+const Form = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+`;
 
-//   const removeEntry = (index) => {
-//     setEntries(entries.filter((_, i) => i !== index));
-//   };
+const EntryRow = styled.div`
+  display: flex;
+  gap: 10px;
+  align-items: center;
+`;
 
-//   return (
-//     <Container>
-//       <Title>Manual Financial Entry</Title>
-//       <Subtitle>Enter transactions for the past 3 months</Subtitle>
+const Input = styled.input`
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #cbd5e0;
+  border-radius: 5px;
+  font-size: 1rem;
+`;
 
-//       <Form>
-//         {entries.map((entry, index) => (
-//           <EntryRow key={index}>
-//             <Input
-//               type="date"
-//               value={entry.date}
-//               onChange={(e) => handleChange(index, "date", e.target.value)}
-//               required
-//             />
-//             <Input
-//               type="text"
-//               placeholder="Category (e.g., Groceries)"
-//               value={entry.category}
-//               onChange={(e) => handleChange(index, "category", e.target.value)}
-//               required
-//             />
-//             <Input
-//               type="number"
-//               placeholder="Amount ($)"
-//               value={entry.amount}
-//               onChange={(e) => handleChange(index, "amount", e.target.value)}
-//               required
-//             />
-//             <RemoveButton onClick={() => removeEntry(index)}>x</RemoveButton>
-//           </EntryRow>
-//         ))}
+const ButtonsContainer = styled.div`
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 15px;
+`;
 
-//         <AddButton onClick={addEntry}>+ Add Another Entry</AddButton>
-//         <SubmitButton>Save Entries</SubmitButton>
-//       </Form>
-//     </Container>
-//   );
-// };
+const AddEntryButton = styled.button`
+  background: #5a67d8;
+  color: white;
+  padding: 10px;
+  font-size: 1rem;
+  border-radius: 5px;
+  cursor: pointer;
+  border: none;
+  transition: background 0.3s;
 
-// const Container = styled.div`
-//   max-width: 800px;
-//   margin: 50px auto;
-//   padding: 20px;
-//   background: white;
-//   box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.1);
-//   border-radius: 10px;
-//   text-align: center;
-// `;
+  &:hover {
+    background: #434190;
+  }
+`;
 
-// const Title = styled.h1`
-//   font-size: 2rem;
-//   color: #2d3748;
-// `;
+const SubmitButton = styled.button`
+  background: #48bb78;
+  color: white;
+  padding: 10px;
+  font-size: 1rem;
+  border-radius: 5px;
+  cursor: pointer;
+  border: none;
+  transition: background 0.3s;
 
-// const Subtitle = styled.p`
-//   font-size: 1.2rem;
-//   color: #718096;
-//   margin-bottom: 20px;
-// `;
+  &:hover {
+    background: #38a169;
+  }
+`;
 
-// const Form = styled.div`
-//   display: flex;
-//   flex-direction: column;
-//   gap: 15px;
-// `;
+const DeleteButton = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  color: red;
+`;
 
-// const EntryRow = styled.div`
-//   display: flex;
-//   gap: 10px;
-//   align-items: center;
-// `;
+const SavedTransactionsContainer = styled.div`
+  margin-top: 30px;
+  padding: 20px;
+  background: #f7fafc;
+  border-radius: 10px;
+  box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.05);
+`;
 
-// const Input = styled.input`
-//   flex: 1;
-//   padding: 10px;
-//   border: 1px solid #cbd5e0;
-//   border-radius: 5px;
-//   font-size: 1rem;
-// `;
+const TransactionTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
 
-// const RemoveButton = styled.button`
-//   background: none;
-//   border: none;
-//   cursor: pointer;
-//   font-size: 1.2rem;
-//   color: red;
-// `;
+  th, td {
+    border-bottom: 1px solid #cbd5e0;
+    padding: 8px;
+    text-align: center;
+  }
 
-// const AddButton = styled.button`
-//   background: #5a67d8;
-//   color: white;
-//   padding: 10px;
-//   font-size: 1rem;
-//   border-radius: 5px;
-//   cursor: pointer;
-//   border: none;
-//   transition: background 0.3s;
+  th {
+    background: #edf2f7;
+  }
+`;
 
-//   &:hover {
-//     background: #434190;
-//   }
-// `;
+const LoadingPageButton = styled.button`
+  margin-top: 30px;
+  margin-bottom: 10px;
+  background-color: #b4d7fc;
+  color: black;
+  text-align: center;
+  padding: 10px;
+  font-size: 1rem;
+  border-radius: 5px;
+  cursor: pointer;
+  border: none;
+  transition: background 0.3s;
 
-// const SubmitButton = styled.button`
-//   background: #48bb78;
-//   color: white;
-//   padding: 10px;
-//   font-size: 1rem;
-//   border-radius: 5px;
-//   cursor: pointer;
-//   border: none;
-//   transition: background 0.3s;
-
-//   &:hover {
-//     background: #38a169;
-//   }
-// `;
-
-// export default ManualEntry;
+  &:hover {
+    background:rgb(95, 117, 141);
+  }
+`

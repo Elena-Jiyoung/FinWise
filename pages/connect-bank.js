@@ -73,29 +73,44 @@ const SkipButton = styled(Button)`
 // It will receive the access token as an argument
 
 const ConnectBank = () => {
-  const { setAccessToken } = useStateContext(); // Use global state for access token
-  const router = useRouter();
+  const { setAccessToken , userId} = useStateContext(); // Use global state for access token
+  const [tellerUserId, setTellerUserId] = useState(null);
 
-  const { open, ready } = useTellerConnect({
+  const router = useRouter();
+  
+  const { open, ready, error } = useTellerConnect({
     applicationId: "app_pajjplgmmc87dmm8ee000",
+    environment: 'sandbox',
+    onInit: function() {
+      console.log("Teller Connect has initialized");
+    },
     onSuccess: async (authorization) => {
       // Save your access token here
-
       setAccessToken(authorization.accessToken); // Store in frontend
       // Send token to backend for secure storage
       try{
-      const response = await fetch("http://localhost:5000/store-token", {
+        const requestBody = {
+          accessToken: authorization.accessToken,
+          firebaseUserId: userId,  // Ensure this is not null
+          tellerUserId: authorization.user.id
+        };
+        
+        console.log("Request Payload:", requestBody); // Log the request payload
+        const response = await fetch("http://localhost:5000/store-teller-user", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ access_token: authorization.accessToken })
-      });
-      if (response.success) {
-        console.log("Access token stored, navigating to Dashboard...");
-        // Redirect to loading page while fetching transactions
-      router.push("/loading");
-      }
+        body: JSON.stringify(requestBody)
+        });
+        const responseData = await response.json();
+        console.log("Server Response:", responseData);
+
+        // Check response correctly
+        if (responseData.success === true) {
+          console.log("Access token stored, navigating to Dashboard...");
+          router.push("/loading"); // Redirect user
+        }
     } catch (error) {
       console.error("Error storing access token:", error);
     }
@@ -104,19 +119,25 @@ const ConnectBank = () => {
       console.log("User exited Teller Connect");
     },
   });
+  // Debug: Check if Teller Connect is initialized
+  useEffect(() => {
+    console.log("Teller Ready:", ready);
+    console.log("Teller Error:", error);
+  }, [ready, error]);
 
 
       
   return (
 
     <Container>
-      
+      <script src="https://cdn.teller.io/connect/connect.js"></script>
+      <h3>When you connect, Teller Connect could not be initialized. If so, refresh your page and try clicking again.</h3>
       <Title>Would you like to connect your bank?</Title>
       <Subtitle>
         Connect your bank account securely to track expenses, set savings goals, and optimize your financial health.
       </Subtitle>
       <ButtonContainer>
-        <ConnectButton onClick={() => open()} disabled={!ready}>
+        <ConnectButton onClick={() => ready && open()} disabled={!ready}>
         Connect a bank account
         </ConnectButton>
         <SkipButton href="/manual-entry">Skip for Now. I will enter manually.</SkipButton>

@@ -11,11 +11,7 @@ const Footer = () => {
         <CenterContainer>
           <Link href="#">Privacy Policy</Link> | <Link href="#">Terms of Service</Link>
         </CenterContainer>
-        <RightContainer>
-          <SocialIcon href="#" aria-label="Facebook">FB</SocialIcon>
-          <SocialIcon href="#" aria-label="Twitter">TW</SocialIcon>
-          <SocialIcon href="#" aria-label="Instagram">IG</SocialIcon>
-        </RightContainer>
+        
       </FooterContainer>
     </FooterSection>
   );
@@ -26,10 +22,13 @@ const FooterSection = styled.footer`
   color: white;
   padding: 30px 10%;
   text-align: center;
-  bottom: 0;
   width: 100%;
   position: absolute;
+  bottom: 0;
+  left: 0;
+  z-index: 80;
 `;
+
 
 const FooterContainer = styled.div`
   display: flex;

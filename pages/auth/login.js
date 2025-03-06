@@ -2,16 +2,18 @@ import React, { useState } from 'react'
 import styled from 'styled-components'
 import { useRouter } from 'next/router'
 import { useStateContext } from '@/context/StateContext'
-import {login, loginWithGoogle, isEmailInUse} from '@/backend/Auth'
+import {checkUserBankStatus, login, loginWithGoogle, isEmailInUse} from '@/backend/Auth'
 import Link from 'next/link'
 import Navbar from '@/components/Layout/Navbar'
+
 const Login = () => {
 
-  const { user, setUser , setUserId} = useStateContext()
+  const { user, userId, setUser , setUserId} = useStateContext()
   const [ email, setEmail ] = useState('')
   const [ password, setPassword ] = useState('')
 
   const router = useRouter()
+
 
 
   async function handleLogin(){
@@ -27,8 +29,18 @@ const Login = () => {
           alert(`Error logging in: ${response.error}`);
           return;
         }
+        const result = await checkUserBankStatus(user);
+        console.log("User Bank Status:", result);
+
+        if (result.success) {
+          console.log("User has connected their bank:", result.tellerUserId);
+          router.push('/loading')
+        } else {
+          console.error("Bank not connected or error:", result.error);
+          router.push('/connect-bank');
+
+        }
         alert("Logged in successfully!");
-        router.push('/dashboard')
     }catch(err){
         console.log('Error Logging In', err)
     }
@@ -36,8 +48,25 @@ const Login = () => {
 
   async function handleGoogleLogin(){
     try{
-        await loginWithGoogle()
-        router.push('/dashboard')
+      const response = await loginWithGoogle(setUser, setUserId)
+      if (response.error) {
+        alert(`Error logging in: ${response.error}`);
+        return;
+      }
+      else {
+      const result = await checkUserBankStatus(user);
+        console.log("User Bank Status:", result);
+
+        if (result.success) {
+          console.log("User has connected their bank:", result.tellerUserId);
+          router.push('/loading')
+        } else {
+          console.error("Bank not connected or error:", result.error);
+          router.push('/connect-bank');
+
+        }
+        alert("Logged in successfully!");
+      }
     }catch(err){
         console.log('Error Logging In', err)
     }
@@ -48,10 +77,8 @@ const Login = () => {
     <Navbar/>
     <Section>
         <Header>Login</Header>
-        <InputTitle>Email</InputTitle>
-        <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)}/>
-        <InputTitle>Password</InputTitle>
-        <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)}/>
+        <Input type="email" placeholder="Enter your Email." value={email} onChange={(e) => setEmail(e.target.value)}/>
+        <Input type="password" placeholder="Enter your password." value={password} onChange={(e) => setPassword(e.target.value)}/>
 
         <UserAgreementText>By signing in, you automatically agree to our <UserAgreementSpan href='/legal/terms-of-use' rel="noopener noreferrer" target="_blank"> Terms of Use</UserAgreementSpan> and <UserAgreementSpan href='/legal/privacy-policy' rel="noopener noreferrer" target="_blank">Privacy Policy.</UserAgreementSpan></UserAgreementText>
 
@@ -72,38 +99,56 @@ const Section = styled.section`
 `;
 
 const Header = styled.h1`
-  font-size: 24px; /* Adjusted for better scalability */
-  margin-top: 50px;
+  font-size: 30px; /* Adjusted for better scalability */
+  margin-top: 150px;
+  margin-bottom: 20px;
 `;
 
 const Input = styled.input`
-  font-size: 16px;
-
+  font-size: 18px;
+  width: 280px;
+  height: 40px;
+  margin: 5px;
+  border-radius: 8px;
 `;
 
 const InputTitle = styled.label` /* Changed to label for semantics */
-  font-size: 14px;
+  font-size: 18px;
   color: #666;
+  margin: 10px;
 `;
 
 const MainButton = styled.button`
-  background-color: #007bff;
+  margin: 10px;
+  padding: 10px;
+  background-color: #2CB57C;
+  border-radius: 5px;
+  color: black;
+  border: 1px solid transparent;
+
   &:hover {
-    background-color: #0056b3;
+    background-color:rgb(2, 126, 74);
+    color: white;
   }
 `;
 
 const GoogleButton = styled.button`
-background-color: #007bff;
+margin: 10px;
+padding: 10px;
+background-color: #b4d7fc;
+color: black;
+border-radius: 5px;
+border: 1px solid transparent;
 &:hover {
-  background-color: #0056b3;
+  background-color:rgb(83, 165, 253);
+  color: white;
 }
 `;
 
 const UserAgreementText = styled.p`
-  font-size: 12px;
+  font-size: 14px;
   color: #666;
-  margin-top: 20px;
+  margin-top: 30px;
   text-align: center;
 `;
 

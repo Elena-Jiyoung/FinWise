@@ -28,7 +28,7 @@ const Square = styled.div`
   text-decoration: none;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
   transition: background 0.3s, transform 0.2s;
-
+  z-index: 9999;
   svg {
     width: 28px;
     height: 28px;

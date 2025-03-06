@@ -1,190 +1,347 @@
-// Code for the backend server
+
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
 const fs = require("fs");
+const admin = require("firebase-admin");
+const yargs = require("yargs");
+const { doc, setDoc, getDoc, collection, getDocs } = require("firebase-admin/firestore");
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
-const admin = require("firebase-admin");
-var serviceAccount = require("C:/Dev/FinWise/finwise-7a208-firebase-adminsdk-fbsvc-7be90a76ca.json")
-// Prevent duplicate Firebase Admin initialization
+// ✅ Parse Command-Line Arguments (Like Python Example)
+const args = yargs
+  .option("environment", {
+    alias: "env",
+    describe: "API environment to target",
+    choices: ["sandbox", "development", "production"],
+    default: "sandbox",
+  })
+  .option("cert", {
+    describe: "Path to the TLS certificate",
+    type: "string",
+  })
+  .option("cert-key", {
+    describe: "Path to the TLS certificate private key",
+    type: "string",
+  })
+  .help()
+  .argv;
+
+// Determine Base URL
+const BASE_URL = "https://api.teller.io";
+
+// Handle Certificate Requirement for Production
+const needsCert = args.environment !== "sandbox";
+if (needsCert && (!args.cert || !args["cert-key"])) {
+  console.error("❌ Error: --cert and --cert-key are required when --environment is not sandbox");
+  process.exit(1);
+}
+
+const certConfig = needsCert ? {
+  cert: fs.readFileSync(args.cert),
+  key: fs.readFileSync(args["cert-key"])
+} : null;
+
+// ✅ Initialize Firebase
+var serviceAccount = require("C:/Dev/FinWise/finwise-7a208-firebase-adminsdk-fbsvc-7be90a76ca.json");
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
   });
 }
-
-// Correct Firestore Initialization
 const db = admin.firestore();
 
+// ✅ Define TellerClient Class (Like Python Version)
+class TellerClient {
+  constructor(cert, accessToken = null) {
+    this.cert = cert;
+    this.accessToken = accessToken;
+  }
 
-let accessToken = null; // Store user access token (temporary, use DB for production)
+  forUser(accessToken) {
+    return new TellerClient(this.cert, accessToken);
+  }
 
-// Step 1. Store Access Token (called from frontend) in firebase
-app.post("/store-token", async (req, res) => {
-  accessToken = req.body.access_token;
-  userId = req.body.userId;
-  if (!userId || !accessToken) return res.status(400).json({ error: "Missing fields" });
+  async listAccounts() {
+    return this._get("/accounts");
+  }
+
+  async getAccountDetails(accountId) {
+    return this._get(`/accounts/${accountId}/details`);
+  }
+
+  async getAccountBalances(accountId) {
+    return this._get(`/accounts/${accountId}/balances`);
+  }
+
+  async listAccountTransactions(accountId) {
+    return this._get(`/accounts/${accountId}/transactions`);
+  }
+
+  async listAccountPayees(accountId, scheme) {
+    return this._get(`/accounts/${accountId}/payments/${scheme}/payees`);
+  }
+
+  async createAccountPayee(accountId, scheme, data) {
+    return this._post(`/accounts/${accountId}/payments/${scheme}/payees`, data);
+  }
+
+  async createAccountPayment(accountId, scheme, data) {
+    return this._post(`/accounts/${accountId}/payments/${scheme}`, data);
+  }
+
+  async _get(path) {
+    return this._request("GET", path);
+  }
+
+  async _post(path, data) {
+    return this._request("POST", path, data);
+  }
+
+  async _request(method, path, data = null) {
+    const url = `${BASE_URL}${path}`;
+    console.log(`🔹 Requesting ${method} ${url}`);
+
+    const headers = {
+      Authorization: `Bearer ${this.accessToken}`,
+      "Content-Type": "application/json",
+    };
+
+    try {
+      const response = await axios({
+        method,
+        url,
+        data,
+        headers,
+        ...(this.cert ? { httpsAgent: this.cert } : {}),
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error(`Error in ${method} ${url}:`, error.response?.data || error.message);
+      throw new Error(error.response?.data?.error?.message || "Failed API request");
+    }
+  }
+}
+app.post("/store-teller-user", async (req, res) => {
   try {
-    await db.collection("users").doc(userId).set({ accessToken: accessToken}, { merge: true });
+    const { accessToken, firebaseUserId, tellerUserId } = req.body;
+    
+    if (!firebaseUserId) {
+      return res.status(400).json({ error: "Missing firebaseUserId" });
+    }
 
-    console.log("✅ Access token stored in Firestore!");
-    res.json({ success: true });
+    const db = admin.firestore();
+    const userRef = db.collection("users").doc(firebaseUserId);
+    const response = await userRef.set({ tellerUserId: tellerUserId, accessToken: accessToken });
+    console.log(response.data())
+    res.json({ success: true, message: "Teller user stored successfully" });
   } catch (error) {
-    console.error("❌ Error saving to Firestore:", error);
+    console.error("❌ Error storing Teller user ID:", error);
     res.status(500).json({ error: error.message });
   }
 });
+// async function storeTestUser() {
+//   const testUserId = "usr_pankm5dj2rh8v592u6000";  // Replace with actual Teller User ID
+//   const testAccessToken = "test_token_ubyx3pzbdp3eo";  // Replace with actual Teller Access Token
+//   const testAccountId = "acc_pankm5d532nmbh5h06000";  // Replace with actual Teller Account ID
 
-// Step 2. Fetch Bank Accounts (requires Teller API access)
-app.get("/fetch-accounts/:userId", async (req, res) => {
-  const {userId} = req.params;
+//   try {
+//     await db.collection("users").doc(testUserId).set({
+//       accessToken: testAccessToken,
+//       accountId: testAccountId
+//     }, { merge: true });
+
+//     console.log("✅ Test user stored successfully in Firestore.");
+//   } catch (error) {
+//     console.error("Error storing test user:", error);
+//   }
+// }
+
+// Run once at startup
+//storeTestUser();
+async function getAccessToken(userId) {
   try {
     const userDoc = await db.collection("users").doc(userId).get();
-    if (!userDoc.exists || !userDoc.data().accessToken) {
-      return res.status(400).json({ error: "No access token found." });
+
+    if (!userDoc.exists) {
+      console.error(`No access token found for user: ${userId}`);
+      return null;
     }
 
-    const accessToken = userDoc.data().accessToken;
-    const response = await axios.get("https://api.teller.io/accounts", {
-      headers: { Authorization: `Basic ${accessToken}:` },
-      cert: fs.readFileSync("C:/Dev/FinWise/teller/certificate.pem"), // Path to your Teller certificate
-      key: fs.readFileSync("C:/Dev/FinWise/teller/private_key.pem"), // Path to your Teller private key
+    const data = userDoc.data();
+    console.log(`Retrieved access token for ${userId}: ${data.accessToken}`);
+    return data.accessToken || null;
+  } catch (error) {
+    console.error("Error fetching access token:", error);
+    return null;
+  }
+}
+
+app.get("/api/identity/:userId", async (req, res) => {
+  const { userId } = req.params;
+  const accessToken = await getAccessToken(userId);
+
+  if (!accessToken || !accountId) {
+    return res.status(400).json({ error: "Missing access token or account ID." });
+  }
+
+  try {
+    console.log(`🔹 Fetching identity information for account: ${accountId}`);
+
+    // ✅ Correct API call for identity data
+    const response = await axios.get(`https://api.teller.io/accounts/${accountId}/identity`, {
+      auth: { username: accessToken, password: "" } // ✅ Use Basic Auth
     });
 
-    // ✅ Store accounts in Firestore
-    const batch = db.batch();
-    response.data.forEach((account) => {
-      const accRef = db.collection("users").doc(userId).collection("accounts").doc(account.id);
-      batch.set(accRef, account);
+    console.log("✅ Identity information fetched:", response.data);
+    res.json(response.data);
+  } catch (error) {
+    console.error("Error fetching identity:", error.response?.data || error.message);
+    res.status(error.response?.status || 500).json({ error: "Failed to fetch identity details." });
+  }
+});
+
+app.get("/api/accounts/:firebaseUserId", async (req, res) => {
+  const { firebaseUserId } = req.params;
+
+  try {
+    const userDoc = await db.collection("users").doc(firebaseUserId).get();
+
+    if (!userDoc.exists) { // ✅ FIXED: No parentheses
+      return res.status(400).json({ error: "User not found in Firestore." });
+    }
+
+    const userData = userDoc.data();
+    const tellerUserId = userData.tellerUserId;
+    const accessToken = userData.accessToken;
+
+    if (!tellerUserId || !accessToken) {
+      return res.status(400).json({ error: "No Teller user ID or access token found." });
+    }
+
+    console.log(`🔹 Fetching all accounts for Teller user: ${tellerUserId}`);
+
+    const response = await axios.get(`https://api.teller.io/accounts`, {
+      auth: { username: accessToken, password: "" }
     });
 
-    await batch.commit();
-    console.log(`✅ Accounts stored for ${userId}`);
     res.json(response.data);
   } catch (error) {
     console.error("❌ Error fetching accounts:", error.response?.data || error.message);
-    res.status(500).json({ error: "Failed to fetch accounts" });
+    res.status(500).json({ error: "Failed to fetch accounts." });
   }
 });
 
-// ✅ Fetch and Store Transactions
-app.get("/fetch-transactions/:userId", async (req, res) => {
-  const { userId } = req.params;
-  try {
-    const userDoc = await db.collection("users").doc(userId).get();
-    if (!userDoc.exists || !userDoc.data().accessToken) {
-      return res.status(400).json({ error: "No access token found." });
-    }
-
-    const accessToken = userDoc.data().accessToken;
-    const accountsSnapshot = await db.collection("users").doc(userId).collection("accounts").get();
-
-    let allTransactions = [];
-    for (const accountDoc of accountsSnapshot.docs) {
-      const accountId = accountDoc.id;
-      const response = await axios.get(`https://api.teller.io/accounts/${accountId}/transactions`, {
-        headers: { Authorization: `Basic ${accessToken}:` },
-      });
-
-      response.data.forEach((txn) => {
-        const txnRef = db.collection("users").doc(userId).collection("transactions").doc(txn.id);
-        db.collection("users").doc(userId).collection("transactions").doc(txn.id).set(txn);
-        allTransactions.push(txn);
-      });
-    }
-
-    console.log(`✅ Transactions stored for ${userId}`);
-    res.json(allTransactions);
-  } catch (error) {
-    console.error("❌ Error fetching transactions:", error.message);
-    res.status(500).json({ error: "Failed to fetch transactions" });
+app.get("/api/accounts/:accountId/:firebaseUserId/details", async (req, res) => {
+  let accountId = req.params.accountId
+  let firebaseUserId = req.params.firebaseUserId;
+  const accessToken = await getAccessToken(firebaseUserId);
+  if (!accessToken || !accountId) {
+    return res.status(400).json({ error: "Missing access token or account ID." });
   }
-});
 
-// ✅ Process Spending Trends
-app.post("/calculate-spending/:userId", async (req, res) => {
-  const { userId } = req.params;
   try {
-    const transactionsSnapshot = await db.collection("users").doc(userId).collection("transactions").get();
-    let monthlyTotals = {};
-    let categoryTotals = {};
+    console.log(`🔹 Fetching FULL ACCOUNT DATA (including balances) for account: ${accountId}`);
 
-    transactionsSnapshot.forEach((txnDoc) => {
-      const txn = txnDoc.data();
-      if (txn.amount > 0) return; // Ignore income
-
-      const month = txn.date.substring(0, 7);
-      monthlyTotals[month] = (monthlyTotals[month] || 0) + Math.abs(txn.amount);
-      categoryTotals[txn.category] = (categoryTotals[txn.category] || 0) + Math.abs(txn.amount);
+    // ✅ Correct API call
+    const response = await axios.get(`https://api.teller.io/accounts/${accountId}/details`, {
+      auth: { username: accessToken, password: "" }
     });
 
-    await db.collection("users").doc(userId).set({ spendingSummary: { monthlySpending: monthlyTotals, categoryBreakdown: categoryTotals } }, { merge: true });
-
-    console.log(`✅ Spending summary stored for ${userId}`);
-    res.json({ success: true });
+    console.log("✅ Account details fetched:", response.data);
+    res.json(response.data);
   } catch (error) {
-    console.error("❌ Error calculating spending:", error.message);
-    res.status(500).json({ error: "Failed to process spending" });
+    console.error("Error fetching balances:", error.response?.data || error.message);
+    res.status(error.response?.status || 500).json({ error: "Failed to fetch account details." });
   }
-});
 
-// Step 5: Fetch Preprocessed Data for Frontend
-app.get("/get-spending-summary/:userId", async (req, res) => {
-  const { userId } = req.params;
+})
+
+app.get("/api/accounts/:accountId/:firebaseUserId/balances", async (req, res) => {
+  let accountId = req.params.accountId
+  let firebaseUserId = req.params.firebaseUserId;
+  console.log(accountId, firebaseUserId)
+  const accessToken = await getAccessToken(firebaseUserId);
+  
+
+  if (!accessToken || !accountId) {
+    return res.status(400).json({ error: "Missing access token or account ID." });
+  }
+
   try {
-    const userDoc = await db.collection("users").doc(userId).get();
-    if (!userDoc.exists) return res.status(400).json({ error: "User not found" });
+    console.log(`🔹 Fetching balances for account: ${accountId}`);
 
-    const spendingSummary = userDoc.data().spendingSummary || {};
-    res.json(spendingSummary);
+    // ✅ Correct API call
+    const response = await axios.get(`https://api.teller.io/accounts/${accountId}/balances`, {
+      auth: { username: accessToken, password: "" }
+    });
+
+    console.log("✅ Account balances fetched:", response.data);
+    res.json(response.data);
   } catch (error) {
-    console.error("❌ Error fetching summary:", error);
-    res.status(500).json({ error: error.message });
+    console.error("Error fetching balances:", error.response?.data || error.message);
+    res.status(error.response?.status || 500).json({ error: "Failed to fetch account details." });
   }
 });
 
-// // Fetch Balances
-// app.get("/fetch-balances/:accountId", async (req, res) => {
-//   if (!accessToken) return res.status(400).json({ error: "No access token found" });
+app.get("/api/accounts/:accountId/:firebaseUserId/transactions", async (req, res) => {
+  let accountId = req.params.accountId
+  const firebaseUserId  = req.params.firebaseUserId;
+  const accessToken = await getAccessToken(firebaseUserId);
+  try {
 
-//   try {
-//     const { accountId } = req.params;
-//     const response = await axios.get(`https://api.teller.io/accounts/${accountId}/balances`, {
-//       headers: { Authorization: `Basic ${accessToken}:` },
-//       cert: fs.readFileSync("C:/Dev/FinWise/teller/certificate.pem"),
-//       key: fs.readFileSync("C:/Dev/FinWise/teller/private_key.pem"),
-//     });
+    // Fetch all accounts linked to the Teller user
+    const transactionRes = await axios.get(`https://api.teller.io/accounts/${accountId}/transactions`, {
+      auth: { username: accessToken, password: "" }
+    });
 
-//     res.json(response.data);
-//   } catch (error) {
-//     console.error("Error fetching balances:", error);
-//     res.status(500).json({ error: error.message });
-//   }
-// });
 
-// // Fetch Identity
-// app.get("/fetch-identity", async (req, res) => {
-//   if (!accessToken) return res.status(400).json({ error: "No access token found" });
+    console.log("Fetched account transactions: ", transactionRes.data)
+    res.json(transactionRes.data)
+  } catch (error) {
+    console.error("❌ Error fetching transactions:", error.response?.data || error.message);
+    res.status(500).json({ error: "Failed to fetch transactions." });
+  }
+});
 
-//   try {
-//     const response = await axios.get("https://api.teller.io/identity", {
-//       headers: { Authorization: `Basic ${accessToken}:` },
-//       cert: fs.readFileSync("C:/Dev/FinWise/teller/certificate.pem"),
-//       key: fs.readFileSync("C:/Dev/FinWise/teller/private_key.pem"),
-//     });
+// ✅ Fetch Account Details
+app.get("/api/accounts/:accountId/:userId/details", async (req, res) => {
+  const { userId } = req.params;
+  const accessToken = await getAccessToken(userId);
 
-//     res.json(response.data);
-//   } catch (error) {
-//     console.error("Error fetching identity:", error);
-//     res.status(500).json({ error: error.message });
-//   }
-// });
-// Start Server
-app.listen(PORT, () => console.log(`Backend running on http://localhost:${PORT}`));
+
+  if (!accessToken || !accountId) {
+    return res.status(400).json({ error: "Missing access token or account ID." });
+  }
+
+  try {
+    console.log(`🔹 Fetching account details for account: ${accountId}`);
+
+    // ✅ Correct API call (Fetch account details)
+    const response = await axios.get(`https://api.teller.io/accounts/${accountId}/details`, {
+      auth: { username: accessToken, password: "" } // ✅ Use Basic Auth instead of Bearer token
+    });
+
+    console.log("✅ Account details fetched:", response.data);
+    res.json(response.data);
+  } catch (error) {
+    console.error("❌ Error fetching account details:", error.response?.data || error.message);
+    res.status(error.response?.status || 500).json({ error: "Failed to fetch account details." });
+  }
+});
+
+
+// ✅ Start Server
+app.listen(PORT, () => {
+  console.log(`🚀 Backend running on http://localhost:${PORT}`);
+  console.log(`🔹 Environment: ${args.environment}`);
+  console.log(`🔹 Using Base URL: ${BASE_URL}`);
+  if (certConfig) console.log("🔹 TLS Certificate is enabled");
+});
