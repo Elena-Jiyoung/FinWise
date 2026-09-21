@@ -1,4 +1,3 @@
-import { useRouter } from 'next/router';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { auth } from '../backend/Firebase';
 const Context = createContext();
@@ -12,9 +11,11 @@ export const StateContext = ({ children }) => {
   const [accountId, setAccountId] = useState(null);
   const [dashboardData, setDashboardData] = useState(null);
   const [manualTransactions, setManualTransactions] = useState([])
-  const router = useRouter()
-  
+
   useEffect(() => {
+    // Only tracks auth state here; each page decides whether it requires
+    // a logged-in user and redirects accordingly (see e.g. dashboard.js,
+    // loading.js, connect-bank.js).
     const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
@@ -22,7 +23,6 @@ export const StateContext = ({ children }) => {
       } else {
         setUser(null);
         setUserId(null);
-        router.push("/auth/login"); // Redirect to login if not authenticated
       }
     });
 
