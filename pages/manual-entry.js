@@ -40,6 +40,11 @@ const ManualEntry = () => {
     setEntries([...entries, { date: "", category: "", amount: "" }]);
   };
 
+  // Handle Deleting an Unsaved Entry Row
+  const deleteEntry = (idx) => {
+    setEntries((prevEntries) => prevEntries.filter((_, i) => i !== idx));
+  };
+
   // Handle Deleting a Saved Transaction
   const deleteSavedTransaction = async (txnId) => {
     if (!userId) return;

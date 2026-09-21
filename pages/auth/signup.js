@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import styled from 'styled-components'
 import { useRouter } from 'next/router'
 import { useStateContext } from '@/context/StateContext'
-import { isEmailInUse, register} from '@/backend/Auth'
+import { register } from '@/backend/Auth'
 import Link from 'next/link'
 import Navbar from '@/components/Layout/Navbar'
 

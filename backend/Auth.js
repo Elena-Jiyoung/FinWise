@@ -34,8 +34,7 @@ export async function login(email, password, setUser, setUserId) {
     try {
       // Check if the email is registered before attempting login
       const existingMethods = await fetchSignInMethodsForEmail(auth, email);
-      console.log(existingMethods);
-      if (!existingMethods) {
+      if (existingMethods.length === 0) {
         return { error: "auth/user-not-found" }; // Return an error response instead of throwing
     }
 

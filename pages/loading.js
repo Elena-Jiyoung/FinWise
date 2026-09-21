@@ -30,18 +30,23 @@ const LoadingPage = () => {
                 }
                 else{
                 console.log("Bank linked! Fetching linked accounts...");
-                const accountsRes = await fetch(`/api/accounts?firebaseUserId=${userId}`,{
+                const idToken = await user.getIdToken();
+                const authHeaders = {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${idToken}`,
+                };
+                const accountsRes = await fetch(`/api/accounts`,{
                   method: "GET",
-                  headers: { "Content-Type": "application/json" }
+                  headers: authHeaders
                 });
                 const textResponse = await accountsRes.text(); // Read response as text
 
                 if (!accountsRes.ok) {
                   console.error(`❌ Error fetching accounts: ${textResponse}`);
-                  throw new Error(textResponse); 
+                  throw new Error(textResponse);
                 }
                 const accountsData = JSON.parse(textResponse);
-                
+
                 console.log("✅ Accounts fetched:", accountsData);
 
                 let accountDetails = {};
@@ -53,17 +58,17 @@ const LoadingPage = () => {
                     console.log(`🔹 Fetching data for account: ${accountId}`);
 
                     // Fetch balances
-                    const balanceRes = await fetch(`/api/balances?accountId=${accountId}&firebaseUserId=${userId}`);
+                    const balanceRes = await fetch(`/api/balances?accountId=${accountId}`, { headers: authHeaders });
                     if (!balanceRes.ok) throw new Error(`Failed to fetch balances for ${accountId}.`);
                     balances[accountId] = await balanceRes.json();
 
                     // Fetch transactions
-                    const transactionsRes = await fetch(`/api/transactions?accountId=${accountId}&firebaseUserId=${userId}`);
+                    const transactionsRes = await fetch(`/api/transactions?accountId=${accountId}`, { headers: authHeaders });
                     if (!transactionsRes.ok) throw new Error(`Failed to fetch transactions for ${accountId}.`);
                     transactions[accountId] = await transactionsRes.json();
 
                     // Fetch account details
-                    const detailsRes = await fetch(`/api/account-details?accountId=${accountId}&firebaseUserId=${userId}`);
+                    const detailsRes = await fetch(`/api/account-details?accountId=${accountId}`, { headers: authHeaders });
                     if (!detailsRes.ok) throw new Error(`Failed to fetch account details for ${accountId}.`);
                     accountDetails[accountId] = await detailsRes.json();
                 }

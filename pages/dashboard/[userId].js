@@ -6,7 +6,6 @@ import { useRouter } from "next/router";
 import FinancialSummary from "../../components/Dashboard/FinancialSummary";
 import SpendingTrends from "../../components/Dashboard/SpendingTrends";
 import Sidebar from "../../components/Layout/Sidebar";
-import QuickActions from "../../components/Dashboard/QuickActions";
 import styled from "styled-components";
 
 const Dashboard = () => {
@@ -78,7 +77,6 @@ const Dashboard = () => {
         {/* Financial Summary & Spending Trends */}
         <FinancialSummary transactions={allTransactions} balances={balances} />
         <SpendingTrends transactions={allTransactions} />
-        {/* <QuickActions /> */} 
       </MainContent>
     </DashboardContainer>
   );

@@ -1,13 +1,16 @@
 import TellerClient from "@/lib/tellerClient";
 import { db } from "@/lib/firebaseAdmin";
+import { requireAuth } from "@/lib/verifyAuth";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
 
-  const { accountId, firebaseUserId } = req.query;
-  if (!accountId || !firebaseUserId) return res.status(400).json({ error: "Missing parameters" });
+  const { accountId } = req.query;
+  if (!accountId) return res.status(400).json({ error: "Missing parameters" });
 
   try {
+    const firebaseUserId = await requireAuth(req);
+
     const userDoc = await db.collection("users").doc(firebaseUserId).get();
     if (!userDoc.exists) return res.status(404).json({ error: "User not found" });
 
@@ -23,9 +26,9 @@ export default async function handler(req, res) {
     const tellerClient = new TellerClient(cert, accessToken);
     const balances = await tellerClient.getAccountBalances(accountId);
 
-    res.status(200).json(balances);
+    return res.status(200).json(balances);
   } catch (error) {
     console.error("❌ Error fetching balances:", error.message);
-    res.status(500).json({ error: error.message });
+    return res.status(error.status || 500).json({ error: error.message });
   }
 }
