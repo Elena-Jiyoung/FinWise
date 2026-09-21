@@ -1,12 +1,19 @@
 import styled from "styled-components";
 import Link from "next/link";
 import { useStateContext } from "@/context/StateContext"; // Import global state context
-import {useRouter} from "next/router";
+import { useRouter } from "next/router";
+import { logOut } from "@/backend/Auth";
 const Sidebar = () => {
     const router = useRouter();
-  const { setUserId, setManualTransactions, setDashboardData } = useStateContext();
+  const { setUser, setUserId, setManualTransactions, setDashboardData } = useStateContext();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await logOut(setUser);
+    } catch (err) {
+      console.error("Error logging out:", err);
+    }
+
     // Clear user-related global state
     setUserId(null);
     setManualTransactions([]);

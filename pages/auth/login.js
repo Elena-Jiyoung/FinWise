@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import styled from 'styled-components'
 import { useRouter } from 'next/router'
 import { useStateContext } from '@/context/StateContext'
-import {checkUserBankStatus, login, loginWithGoogle, isEmailInUse} from '@/backend/Auth'
+import {checkUserBankStatus, login, loginWithGoogle} from '@/backend/Auth'
 import Link from 'next/link'
 import Navbar from '@/components/Layout/Navbar'
 
@@ -65,7 +65,6 @@ const Login = () => {
         // Store user data in state
         setUser(response.user);
         setUserId(response.user.uid);
-        print(userId)
         // Check user's bank connection
         const result = await checkUserBankStatus(response.user);
         console.log("User Bank Status:", result);

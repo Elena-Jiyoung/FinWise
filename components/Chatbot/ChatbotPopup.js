@@ -194,12 +194,10 @@ const ChatbotPopup = ({closeChatbot}) => {
       ],
     
     }
-    console.log(process.env.NEXT_PUBLIC_OPENAI_API_KEY)
     try{
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      const response = await fetch("/api/chat", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify(apiRequestBody)

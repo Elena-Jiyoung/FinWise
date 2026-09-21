@@ -74,7 +74,7 @@ const SkipButton = styled(Button)`
 // It will receive the access token as an argument
 
 const ConnectBank = () => {
-  const { setAccessToken , userId} = useStateContext(); // Use global state for access token
+  const { setAccessToken, user, userId } = useStateContext(); // Use global state for access token
   const [tellerUserId, setTellerUserId] = useState(null);
 
   const router = useRouter();
@@ -92,15 +92,15 @@ const ConnectBank = () => {
       try{
         const requestBody = {
           accessToken: authorization.accessToken,
-          firebaseUserId: userId,  // Ensure this is not null
           tellerUserId: authorization.user.id
         };
-        
-        console.log("Request Payload:", requestBody); // Log the request payload
+
+        const idToken = await user.getIdToken();
         const response = await fetch("/api/store-teller-user", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${idToken}`
         },
         body: JSON.stringify(requestBody)
         });
